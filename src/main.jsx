@@ -23,7 +23,11 @@ import {
   UserCheck,
   UserPlus,
   Users,
-  Warehouse
+  Warehouse,
+  Zap,
+  CheckCircle2,
+  XCircle,
+  Radio
 } from 'lucide-react';
 import './styles.css';
 
@@ -65,7 +69,7 @@ function getPagesForUser(user) {
     return [
       { id: 'stock', label: 'Stock Overview', icon: Warehouse },
       { id: 'audit', label: 'Audit Trail', icon: FileText },
-      { id: 'approvals', label: 'Run Approvals', icon: ClipboardCheck },
+      { id: 'approvals', label: 'Run Approvals & Dispatch', icon: ClipboardCheck },
       { id: 'verification', label: 'Verify Volunteers', icon: UserCheck }
     ];
   }
@@ -105,10 +109,12 @@ function App() {
       // Refresh currentUser state if updated in backend
       if (user && payload.volunteers) {
         const updatedSelf = payload.volunteers.find((v) => v.id === user.id);
-        if (updatedSelf && updatedSelf.verified !== user.verified) {
-          const newUser = { ...user, verified: updatedSelf.verified };
-          setUser(newUser);
-          localStorage.setItem('foodbridge_user', JSON.stringify(newUser));
+        if (updatedSelf) {
+          if (updatedSelf.verified !== user.verified || updatedSelf.isAvailable !== user.isAvailable || updatedSelf.runsCompleted !== user.runsCompleted) {
+            const newUser = { ...user, verified: updatedSelf.verified, isAvailable: updatedSelf.isAvailable, runsCompleted: updatedSelf.runsCompleted };
+            setUser(newUser);
+            localStorage.setItem('foodbridge_user', JSON.stringify(newUser));
+          }
         }
       }
 
@@ -265,6 +271,7 @@ function App() {
         {user.role === 'volunteer' && user.verified && currentPageId === 'request' && (
           <VolunteerRequestPage
             api={api}
+            busyAction={busyAction}
             helpers={helpers}
             state={state}
             user={user}
@@ -275,7 +282,9 @@ function App() {
         )}
         {user.role === 'ngo' && currentPageId === 'stock' && <NgoStockPage helpers={helpers} state={state} user={user} />}
         {user.role === 'ngo' && currentPageId === 'audit' && <NgoAuditPage state={state} user={user} />}
-        {user.role === 'ngo' && currentPageId === 'approvals' && <NgoApprovalPage api={api} helpers={helpers} state={state} user={user} />}
+        {user.role === 'ngo' && currentPageId === 'approvals' && (
+          <NgoApprovalPage api={api} busyAction={busyAction} helpers={helpers} state={state} user={user} />
+        )}
         {user.role === 'ngo' && currentPageId === 'verification' && (
           <NgoVerificationPage api={api} busyAction={busyAction} state={state} user={user} />
         )}
@@ -284,16 +293,14 @@ function App() {
   );
 }
 
-/* Authentication Portal (Sign In / Sign Up with Email & Password) */
+/* Authentication Portal Component */
 function AuthPortalPage({ api, busyAction, loginUser, state }) {
-  const [authMode, setAuthMode] = useState('signin'); // 'signin' or 'signup'
+  const [authMode, setAuthMode] = useState('signin');
   const [selectedRole, setSelectedRole] = useState('donor');
 
-  // Sign-In Form State
   const [signInEmail, setSignInEmail] = useState('');
   const [signInPassword, setSignInPassword] = useState('');
 
-  // Sign-Up Form States
   const [ngoForm, setNgoForm] = useState({ name: '', email: '', password: '', zone: 'North Zone', address: '', contact: '', storageCapacity: 500 });
   const [volForm, setVolForm] = useState({ name: '', email: '', password: '', phone: '', zone: 'North Zone', vehicle: 'Bike', idProof: '' });
   const [donorForm, setDonorForm] = useState({ name: '', email: '', password: '', contact: '', address: '' });
@@ -348,7 +355,6 @@ function AuthPortalPage({ api, busyAction, loginUser, state }) {
         <h1>FoodBridge Portal</h1>
         <p>Sign in to your account or register a new user with Email & Password.</p>
 
-        {/* Auth Mode Toggle */}
         <div style={{ display: 'inline-flex', gap: '8px', background: '#f1f5f9', padding: '6px', borderRadius: '12px', marginTop: '16px' }}>
           <button
             className={authMode === 'signin' ? 'btn-primary' : 'btn-secondary'}
@@ -371,7 +377,6 @@ function AuthPortalPage({ api, busyAction, loginUser, state }) {
         </div>
       </div>
 
-      {/* Role Selection */}
       <div className="login-role-selector">
         <div
           className={selectedRole === 'donor' ? 'login-role-card active' : 'login-role-card'}
@@ -419,12 +424,11 @@ function AuthPortalPage({ api, busyAction, loginUser, state }) {
             <p>
               {authMode === 'signin'
                 ? 'Enter your registered Email Address and Password to continue.'
-                : 'Create a new account'}
+                : 'Create a new account. Details will be saved in your MongoDB database.'}
             </p>
           </div>
         </div>
 
-        {/* STRICT SIGN IN FORM */}
         {authMode === 'signin' && (
           <form className="modern-form" onSubmit={handleSignIn}>
             <div className="field-group full-width">
@@ -460,7 +464,6 @@ function AuthPortalPage({ api, busyAction, loginUser, state }) {
           </form>
         )}
 
-        {/* SIGN UP FORM */}
         {authMode === 'signup' && (
           <form className="modern-form" onSubmit={handleSignUp}>
             <div className="field-group">
@@ -914,27 +917,144 @@ function VolunteerStatusPage({ state, user }) {
   );
 }
 
-/* Volunteer Request Page (For Verified Volunteers Only) */
-function VolunteerRequestPage({ api, helpers, state, user }) {
+/* Volunteer Request Page (For Verified Volunteers) with Availability Toggle & Direct Invites */
+function VolunteerRequestPage({ api, busyAction, helpers, state, user }) {
   const [destination, setDestination] = useState('Local Community Shelter');
   const activeVolId = user.id;
+
+  const currentVolObj = state.volunteers.find((v) => v.id === activeVolId) || user;
+  const isAvailable = Boolean(currentVolObj.isAvailable);
+
   const openDonations = state.donations.filter((d) => d.status === 'OPEN');
   const availableInventory = state.inventory.filter((item) => item.status === 'AVAILABLE');
   const myRequests = state.pickupRequests.filter((r) => r.volunteerId === activeVolId);
 
+  // Incoming Direct Dispatch Offers from NGOs
+  const directInvites = state.pickupRequests.filter(
+    (r) => r.volunteerId === activeVolId && r.status === 'DIRECT_INVITE'
+  );
+
   const hasRequested = (donationId) =>
-    myRequests.some((r) => r.donationId === donationId && r.status === 'PENDING_NGO');
+    myRequests.some((r) => r.donationId === donationId && (r.status === 'PENDING_NGO' || r.status === 'APPROVED'));
+
+  const toggleAvailability = () => {
+    api(
+      `/volunteers/${activeVolId}/availability`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ isAvailable: !isAvailable })
+      },
+      !isAvailable
+        ? 'You are now ACTIVE and available for emergency NGO dispatch orders!'
+        : 'Availability toggled to OFFLINE.'
+    );
+  };
 
   return (
     <>
+      {/* Volunteer Active Status & Dispatch Toggle */}
+      <div className="card-panel" style={{ borderLeft: isAvailable ? '4px solid #10b981' : '4px solid #94a3b8' }}>
+        <div className="card-header" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <div className="card-icon" style={{ background: isAvailable ? '#d1fae5' : '#f1f5f9', color: isAvailable ? '#059669' : '#64748b' }}>
+              <Radio size={24} className={isAvailable ? 'spin-slow' : ''} />
+            </div>
+            <div>
+              <h2 style={{ margin: 0, fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                Dispatch Status: {isAvailable ? <span style={{ color: '#059669', fontWeight: 600 }}>ACTIVE for Pickup Orders</span> : <span style={{ color: '#64748b' }}>OFFLINE</span>}
+              </h2>
+              <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.9rem' }}>
+                {isAvailable
+                  ? 'NGO Coordinators can see you are active and send you direct pickup requests for urgent food orders.'
+                  : 'Turn ON availability if you are active and willing to receive urgent dispatch requests from NGOs.'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            className={isAvailable ? 'btn-primary' : 'btn-secondary'}
+            disabled={busyAction === `/volunteers/${activeVolId}/availability`}
+            onClick={toggleAvailability}
+            style={{ padding: '10px 24px', background: isAvailable ? '#10b981' : '#f1f5f9', color: isAvailable ? '#ffffff' : '#334155' }}
+            type="button"
+          >
+            {isAvailable ? <CheckCircle2 size={18} /> : <Zap size={18} />}
+            <span>{isAvailable ? 'Active for Orders (ON)' : 'Set Active for Orders (OFF)'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Direct Dispatch Invitations from NGO Section */}
+      {directInvites.length > 0 && (
+        <div className="card-panel" style={{ background: '#fffbeb', borderColor: '#fde68a' }}>
+          <div className="card-header">
+            <div className="card-icon" style={{ background: '#fef3c7', color: '#d97706' }}>
+              <Zap size={22} />
+            </div>
+            <div className="card-title-group">
+              <h2>Urgent NGO Dispatch Requests</h2>
+              <p>An NGO coordinator has directly invited you to pick up an urgent food order!</p>
+            </div>
+          </div>
+
+          <div className="item-list">
+            {directInvites.map((invite) => {
+              const donation = helpers.donation(invite.donationId);
+              const ngoName = helpers.ngoName(invite.ngoId);
+              return (
+                <div className="list-item-card" key={invite.id} style={{ background: '#ffffff', border: '1px solid #fcd34d' }}>
+                  <div className="item-info">
+                    <div className="item-title-row">
+                      <span className="item-title" style={{ color: '#b45309' }}>⚡ {donation?.foodName || 'Direct Pickup Order'}</span>
+                      <span className="badge-status pending_ngo">DIRECT NGO INVITE</span>
+                    </div>
+                    <div className="item-meta">
+                      <span>🍱 {donation?.mealCount} meals</span>
+                      <span>·</span>
+                      <span>🏢 Requested by: <strong>{ngoName}</strong></span>
+                      <span>·</span>
+                      <span>📍 Pickup: {donation?.donorAddress}</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      className="btn-primary"
+                      onClick={() =>
+                        api(`/pickup-requests/${invite.id}/accept-invite`, { method: 'PATCH' }, 'Direct pickup offer accepted! Order added to your active runs.')
+                      }
+                      type="button"
+                    >
+                      <CheckCircle2 size={16} />
+                      <span>Accept Order</span>
+                    </button>
+                    <button
+                      className="btn-secondary"
+                      onClick={() =>
+                        api(`/pickup-requests/${invite.id}/decline-invite`, { method: 'PATCH' }, 'Dispatch offer declined.')
+                      }
+                      type="button"
+                    >
+                      <XCircle size={16} />
+                      <span>Decline</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Target Destination Settings */}
       <div className="card-panel">
         <div className="card-header">
           <div className="card-icon">
             <Truck size={22} />
           </div>
           <div className="card-title-group">
-            <h2>Active Verified Volunteer</h2>
-            <p>Logged in as {user.name} ({user.zone}). Authorized for pickup and stock runs.</p>
+            <h2>Active Verified Volunteer Profile</h2>
+            <p>Logged in as {user.name} ({user.zone} · {user.runsCompleted || 0} Completed Runs).</p>
           </div>
         </div>
 
@@ -951,6 +1071,7 @@ function VolunteerRequestPage({ api, helpers, state, user }) {
         </div>
       </div>
 
+      {/* Open Food Donor Listings */}
       <div className="card-panel">
         <div className="card-header">
           <div className="card-icon">
@@ -1008,6 +1129,7 @@ function VolunteerRequestPage({ api, helpers, state, user }) {
         </div>
       </div>
 
+      {/* Food Stored in NGO Warehouses */}
       <div className="card-panel">
         <div className="card-header">
           <div className="card-icon">
@@ -1258,13 +1380,98 @@ function NgoAuditPage({ state }) {
   );
 }
 
-/* NGO Approval Page */
-function NgoApprovalPage({ api, helpers, state }) {
+/* NGO Approval Page with Direct Dispatch to Active Volunteers Feature */
+function NgoApprovalPage({ api, busyAction, helpers, state, user }) {
   const pickupRequests = state.pickupRequests.filter((r) => r.status === 'PENDING_NGO');
   const stockRequests = state.inventoryRequests.filter((r) => r.status === 'PENDING_NGO');
+  const openDonations = state.donations.filter((d) => d.status === 'OPEN');
+  const activeVolunteers = state.volunteers.filter((v) => v.verified && v.isAvailable);
+
+  const [dispatchDonationId, setDispatchDonationId] = useState('');
+  const [dispatchVolId, setDispatchVolId] = useState('');
+
+  const sendDirectDispatch = (e) => {
+    e.preventDefault();
+    const dId = dispatchDonationId || openDonations[0]?.id;
+    const vId = dispatchVolId || activeVolunteers[0]?.id;
+    if (!dId || !vId) {
+      alert('Please select an open donation and an active volunteer.');
+      return;
+    }
+
+    api(
+      '/ngo/direct-dispatch',
+      {
+        method: 'POST',
+        body: JSON.stringify({ donationId: dId, volunteerId: vId, ngoId: user.id })
+      },
+      'Direct pickup invitation sent to volunteer!'
+    );
+  };
 
   return (
     <>
+      {/* DIRECT DISPATCH FEATURE: Send Direct Pickup Request to Active Volunteer */}
+      <div className="card-panel" style={{ borderLeft: '4px solid #f59e0b' }}>
+        <div className="card-header">
+          <div className="card-icon" style={{ background: '#fef3c7', color: '#d97706' }}>
+            <Zap size={22} />
+          </div>
+          <div className="card-title-group">
+            <h2>Direct Order Dispatch to Active Volunteers</h2>
+            <p>Send an immediate pickup request to an active volunteer for unassigned or urgent food orders.</p>
+          </div>
+        </div>
+
+        {activeVolunteers.length === 0 ? (
+          <div className="empty-box" style={{ background: '#fffbeb' }}>
+            No volunteers are currently toggled <strong>Available for Dispatch (ON)</strong>. Active volunteers will appear here automatically when they toggle their availability ON.
+          </div>
+        ) : openDonations.length === 0 ? (
+          <div className="empty-box">No open food donor listings available for dispatch.</div>
+        ) : (
+          <form className="modern-form" onSubmit={sendDirectDispatch}>
+            <div className="field-group">
+              <label className="field-label">Select Open Food Donation</label>
+              <select
+                className="field-select"
+                value={dispatchDonationId || openDonations[0]?.id}
+                onChange={(e) => setDispatchDonationId(e.target.value)}
+              >
+                {openDonations.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.foodName} ({d.mealCount} meals · {d.donorName})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="field-group">
+              <label className="field-label">Select Active & Available Volunteer</label>
+              <select
+                className="field-select"
+                value={dispatchVolId || activeVolunteers[0]?.id}
+                onChange={(e) => setDispatchVolId(e.target.value)}
+              >
+                {activeVolunteers.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    🟢 {v.name} ({v.zone} · {v.vehicle} · {v.runsCompleted} runs)
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="field-group full-width">
+              <button className="btn-primary" disabled={busyAction === '/ngo/direct-dispatch'} type="submit">
+                <Send size={16} />
+                <span>Send Direct Request to Volunteer</span>
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
+      {/* Pending Donor Pickup Requests */}
       <div className="card-panel">
         <div className="card-header">
           <div className="card-icon">
@@ -1310,6 +1517,7 @@ function NgoApprovalPage({ api, helpers, state }) {
         </div>
       </div>
 
+      {/* Pending Stock Distribution Requests */}
       <div className="card-panel">
         <div className="card-header">
           <div className="card-icon">
@@ -1358,7 +1566,7 @@ function NgoApprovalPage({ api, helpers, state }) {
   );
 }
 
-/* NGO Verification Page */
+/* NGO Verification Page with Verified Volunteer Roster */
 function NgoVerificationPage({ api, busyAction, state }) {
   const pending = state.volunteers.filter((v) => !v.verified);
   const verified = state.volunteers.filter((v) => v.verified);
@@ -1430,13 +1638,14 @@ function NgoVerificationPage({ api, busyAction, state }) {
                 <th>Zone</th>
                 <th>Phone</th>
                 <th>Vehicle</th>
+                <th>Dispatch Status</th>
                 <th>Runs Completed</th>
               </tr>
             </thead>
             <tbody>
               {verified.length === 0 && (
                 <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', color: '#64748b', padding: '24px' }}>
+                  <td colSpan="6" style={{ textAlign: 'center', color: '#64748b', padding: '24px' }}>
                     No verified volunteers yet.
                   </td>
                 </tr>
@@ -1449,7 +1658,14 @@ function NgoVerificationPage({ api, busyAction, state }) {
                   <td>{v.zone}</td>
                   <td>{v.phone}</td>
                   <td>{v.vehicle}</td>
-                  <td>{v.runsCompleted} runs</td>
+                  <td>
+                    <span className={v.isAvailable ? 'badge-status open' : 'badge-status'}>
+                      {v.isAvailable ? '🟢 ACTIVE FOR DISPATCH' : '⚪ OFFLINE'}
+                    </span>
+                  </td>
+                  <td>
+                    <strong>{v.runsCompleted || 0} runs</strong>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -1547,7 +1763,7 @@ function pageTitle(role, page) {
     ngo: {
       stock: 'NGO Stock & Warehouse Overview',
       audit: 'Live System Audit Trail',
-      approvals: 'Volunteer Run Approvals',
+      approvals: 'Volunteer Run Approvals & Direct Dispatch',
       verification: 'Volunteer Verification Review'
     }
   };
@@ -1565,7 +1781,7 @@ function pageSubtitle(role, page) {
     ngo: {
       stock: 'Monitor active donations, warehouse stock levels, and food in transit.',
       audit: 'View transparent, real-time records of every food rescue operation.',
-      approvals: 'Review and approve volunteer pickup claims and distribution drives.',
+      approvals: 'Review pickup claims and dispatch urgent orders to active volunteers.',
       verification: 'Validate volunteer ID proofs and manage active response teams.'
     }
   };

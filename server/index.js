@@ -135,7 +135,7 @@ app.post('/api/demo/reset', async (_req, res, next) => {
   }
 });
 
-// Registration API Endpoint with Email & Password
+// Registration API Endpoint
 app.post('/api/auth/register', async (req, res, next) => {
   try {
     requireFields(req.body, ['role', 'email', 'password']);
@@ -195,6 +195,7 @@ app.post('/api/auth/register', async (req, res, next) => {
         vehicle: req.body.vehicle.trim(),
         idProof: req.body.idProof.trim(),
         verified: false,
+        isAvailable: false,
         rating: 0,
         runsCompleted: 0,
         appliedAt: now(),
@@ -213,7 +214,8 @@ app.post('/api/auth/register', async (req, res, next) => {
           zone: volunteer.zone,
           vehicle: volunteer.vehicle,
           idProof: volunteer.idProof,
-          verified: false
+          verified: false,
+          isAvailable: false
         },
         state: await publicState()
       });
@@ -256,7 +258,7 @@ app.post('/api/auth/register', async (req, res, next) => {
   }
 });
 
-// Login API Endpoint with Strict Email & Password Authorization
+// Login API Endpoint
 app.post('/api/auth/login', async (req, res, next) => {
   try {
     requireFields(req.body, ['role', 'email', 'password']);
@@ -299,7 +301,8 @@ app.post('/api/auth/login', async (req, res, next) => {
           zone: volunteer.zone,
           vehicle: volunteer.vehicle,
           idProof: volunteer.idProof,
-          verified: volunteer.verified
+          verified: volunteer.verified,
+          isAvailable: Boolean(volunteer.isAvailable)
         },
         state: await publicState()
       });
@@ -324,6 +327,131 @@ app.post('/api/auth/login', async (req, res, next) => {
     }
 
     return res.status(400).json({ error: 'Invalid user role requested.' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Volunteer Toggle Availability (Active for Orders)
+app.patch('/api/volunteers/:volunteerId/availability', async (req, res, next) => {
+  try {
+    const volunteer = await Volunteer.findOne({ id: req.params.volunteerId });
+    if (!volunteer) return res.status(404).json({ error: 'Volunteer was not found.' });
+
+    volunteer.isAvailable = Boolean(req.body.isAvailable);
+    await volunteer.save();
+
+    await addEvent(
+      'VOLUNTEER_AVAILABILITY_CHANGED',
+      `${volunteer.name} set availability to ${volunteer.isAvailable ? 'ACTIVE for pickup dispatch' : 'OFFLINE'}.`
+    );
+
+    res.json(await publicState());
+  } catch (error) {
+    next(error);
+  }
+});
+
+// NGO Direct Dispatch Request to Active Volunteer
+app.post('/api/ngo/direct-dispatch', async (req, res, next) => {
+  try {
+    requireFields(req.body, ['donationId', 'volunteerId', 'ngoId']);
+    const donation = await Donation.findOne({ id: req.body.donationId });
+    const volunteer = await Volunteer.findOne({ id: req.body.volunteerId });
+    const ngo = await Ngo.findOne({ id: req.body.ngoId });
+
+    if (!donation) return res.status(404).json({ error: 'Donation listing not found.' });
+    if (!volunteer) return res.status(404).json({ error: 'Selected volunteer not found.' });
+    if (!ngo) return res.status(404).json({ error: 'NGO account not found.' });
+
+    if (donation.status !== 'OPEN') {
+      return res.status(409).json({ error: 'This donation is no longer open for pickup.' });
+    }
+
+    const existingInvite = await PickupRequest.findOne({
+      donationId: donation.id,
+      volunteerId: volunteer.id,
+      status: { $in: ['DIRECT_INVITE', 'PENDING_NGO', 'APPROVED'] }
+    });
+    if (existingInvite) {
+      return res.status(409).json({ error: 'A dispatch request or claim already exists for this volunteer and order.' });
+    }
+
+    const request = await PickupRequest.create({
+      id: id('REQ'),
+      donationId: donation.id,
+      volunteerId: volunteer.id,
+      ngoId: ngo.id,
+      status: 'DIRECT_INVITE',
+      createdAt: now()
+    });
+
+    await addEvent(
+      'DIRECT_DISPATCH_SENT',
+      `${ngo.name} sent a direct pickup request to ${volunteer.name} for "${donation.foodName}".`
+    );
+
+    res.status(201).json(await publicState());
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Volunteer Accept Direct Dispatch Invite
+app.patch('/api/pickup-requests/:requestId/accept-invite', async (req, res, next) => {
+  try {
+    const request = await PickupRequest.findOne({ id: req.params.requestId });
+    if (!request) return res.status(404).json({ error: 'Dispatch request was not found.' });
+    if (request.status !== 'DIRECT_INVITE') return res.status(409).json({ error: 'Request is no longer pending invitation.' });
+
+    const donation = await Donation.findOne({ id: request.donationId });
+    const volunteer = await Volunteer.findOne({ id: request.volunteerId });
+    const ngo = await Ngo.findOne({ id: request.ngoId });
+    if (!donation || !volunteer || !ngo) return res.status(404).json({ error: 'Related order workflow record is missing.' });
+
+    request.status = 'APPROVED';
+    request.approvedAt = now();
+    await request.save();
+
+    const assignment = await Assignment.create({
+      id: id('ASN'),
+      requestId: request.id,
+      donationId: donation.id,
+      volunteerId: volunteer.id,
+      ngoId: ngo.id,
+      status: 'APPROVED_FOR_PICKUP',
+      outcome: null,
+      peopleServed: 0,
+      notes: 'Direct NGO dispatch accepted by volunteer.',
+      createdAt: now()
+    });
+
+    donation.status = 'ASSIGNED';
+    await donation.save();
+
+    await addEvent(
+      'DIRECT_DISPATCH_ACCEPTED',
+      `${volunteer.name} accepted direct dispatch from ${ngo.name} for "${donation.foodName}".`
+    );
+
+    res.json(await publicState());
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Volunteer Decline Direct Dispatch Invite
+app.patch('/api/pickup-requests/:requestId/decline-invite', async (req, res, next) => {
+  try {
+    const request = await PickupRequest.findOne({ id: req.params.requestId });
+    if (!request) return res.status(404).json({ error: 'Dispatch request was not found.' });
+    if (request.status !== 'DIRECT_INVITE') return res.status(409).json({ error: 'Request is no longer pending invitation.' });
+
+    request.status = 'DECLINED';
+    await request.save();
+
+    await addEvent('DIRECT_DISPATCH_DECLINED', `Volunteer declined direct dispatch request.`);
+    res.json(await publicState());
   } catch (error) {
     next(error);
   }
@@ -391,6 +519,7 @@ app.post('/api/volunteers/apply', async (req, res, next) => {
       vehicle: req.body.vehicle.trim(),
       idProof: req.body.idProof.trim(),
       verified: false,
+      isAvailable: false,
       rating: 0,
       runsCompleted: 0,
       appliedAt: now(),
@@ -529,6 +658,7 @@ app.patch('/api/assignments/:assignmentId/pick-up', async (req, res, next) => {
   }
 });
 
+// Complete Donor Assignment Endpoint - Fixes volunteer.runsCompleted counter
 app.patch('/api/assignments/:assignmentId/complete', async (req, res, next) => {
   try {
     requireFields(req.body, ['outcome']);
@@ -540,6 +670,8 @@ app.patch('/api/assignments/:assignmentId/complete', async (req, res, next) => {
 
     const donation = await Donation.findOne({ id: assignment.donationId });
     const ngo = await Ngo.findOne({ id: assignment.ngoId });
+    const volunteer = await Volunteer.findOne({ id: assignment.volunteerId });
+
     assignment.status = 'COMPLETED';
     assignment.outcome = req.body.outcome;
     assignment.peopleServed = Number(req.body.peopleServed || donation?.mealCount || 0);
@@ -547,10 +679,16 @@ app.patch('/api/assignments/:assignmentId/complete', async (req, res, next) => {
     assignment.completedAt = now();
     await assignment.save();
 
+    // Increment and persist volunteer runsCompleted counter in MongoDB
+    if (volunteer) {
+      volunteer.runsCompleted = (volunteer.runsCompleted || 0) + 1;
+      await volunteer.save();
+    }
+
     if (donation && req.body.outcome === 'DISTRIBUTED') {
       donation.status = 'DISTRIBUTED';
       await donation.save();
-      await addEvent('FOOD_DISTRIBUTED', `${donation.foodName} was distributed to people in need.`);
+      await addEvent('FOOD_DISTRIBUTED', `${donation.foodName} was distributed to people in need by ${volunteer?.name || 'volunteer'}.`);
     } else if (donation) {
       donation.status = 'STORED_AT_NGO';
       await donation.save();
@@ -566,7 +704,7 @@ app.patch('/api/assignments/:assignmentId/complete', async (req, res, next) => {
         status: 'AVAILABLE',
         createdAt: now()
       });
-      await addEvent('FOOD_STORED', `${donation.foodName} was dropped at ${ngo?.name || 'the NGO'} for a second run.`);
+      await addEvent('FOOD_STORED', `${donation.foodName} was dropped at ${ngo?.name || 'the NGO'} by ${volunteer?.name || 'volunteer'}.`);
     }
 
     res.json(await publicState());
@@ -671,6 +809,7 @@ app.patch('/api/inventory-assignments/:assignmentId/pick-up', async (req, res, n
   }
 });
 
+// Complete Stock Assignment Endpoint - Fixes volunteer.runsCompleted counter
 app.patch('/api/inventory-assignments/:assignmentId/complete', async (req, res, next) => {
   try {
     const assignment = await InventoryAssignment.findOne({ id: req.params.assignmentId });
@@ -680,18 +819,26 @@ app.patch('/api/inventory-assignments/:assignmentId/complete', async (req, res, 
     }
 
     const inventory = await Inventory.findOne({ id: assignment.inventoryId });
+    const volunteer = await Volunteer.findOne({ id: assignment.volunteerId });
+
     assignment.status = 'COMPLETED';
     assignment.peopleServed = Number(req.body.peopleServed || assignment.peopleTarget || inventory?.mealCount || 0);
     assignment.notes = req.body.notes?.trim() || '';
     assignment.completedAt = now();
     await assignment.save();
 
+    // Increment and persist volunteer runsCompleted counter in MongoDB
+    if (volunteer) {
+      volunteer.runsCompleted = (volunteer.runsCompleted || 0) + 1;
+      await volunteer.save();
+    }
+
     if (inventory) {
       inventory.status = 'DISTRIBUTED';
       await inventory.save();
     }
 
-    await addEvent('INVENTORY_DISTRIBUTED', `${inventory?.foodName || 'NGO stock'} was distributed at ${assignment.destination}.`);
+    await addEvent('INVENTORY_DISTRIBUTED', `${inventory?.foodName || 'NGO stock'} was distributed at ${assignment.destination} by ${volunteer?.name || 'volunteer'}.`);
     res.json(await publicState());
   } catch (error) {
     next(error);
