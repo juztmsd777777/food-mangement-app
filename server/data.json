@@ -1,0 +1,424 @@
+{
+  "ngos": [
+    {
+      "id": "NGO-1",
+      "name": "Hope Meals Foundation",
+      "zone": "North Zone",
+      "address": "12 Relief Street, North Campus",
+      "storageCapacity": 600,
+      "contact": "+91 90000 11001"
+    },
+    {
+      "id": "NGO-2",
+      "name": "Seva Kitchen Trust",
+      "zone": "Central Zone",
+      "address": "4 Community Road, Market Circle",
+      "storageCapacity": 420,
+      "contact": "+91 90000 11002"
+    },
+    {
+      "id": "NGO-3",
+      "name": "Bridge Food Network",
+      "zone": "South Zone",
+      "address": "88 Shelter Lane, Metro Ward",
+      "storageCapacity": 520,
+      "contact": "+91 90000 11003"
+    }
+  ],
+  "volunteers": [
+    {
+      "email": "test_1786691156355@example.com",
+      "vehicle": "Bike",
+      "idProof": "AADHAAR-9999",
+      "appliedAt": "2026-08-14T07:05:56.362Z",
+      "verifiedAt": null,
+      "id": "VOL-MSSLS7EY-RYM1",
+      "name": "Test Volunteer",
+      "phone": "+91 90000 49240",
+      "zone": "North Zone",
+      "verified": false,
+      "rating": 0,
+      "runsCompleted": 0
+    },
+    {
+      "email": "test_1786691138781@example.com",
+      "vehicle": "Bike",
+      "idProof": "AADHAAR-9999",
+      "appliedAt": "2026-08-14T07:05:38.789Z",
+      "verifiedAt": null,
+      "id": "VOL-MSSLRTUT-H7XV",
+      "name": "Test Volunteer",
+      "phone": "+91 90000 65091",
+      "zone": "North Zone",
+      "verified": false,
+      "rating": 0,
+      "runsCompleted": 0
+    },
+    {
+      "email": "test_1786690728714@example.com",
+      "vehicle": "Bike",
+      "idProof": "AADHAAR-9999",
+      "appliedAt": "2026-08-14T06:58:48.718Z",
+      "verifiedAt": "2026-08-14T07:02:45.915Z",
+      "id": "VOL-MSSLJ1FY-4F1A",
+      "name": "Test Volunteer",
+      "phone": "+91 90000 23387",
+      "zone": "North Zone",
+      "verified": true,
+      "rating": 4.7,
+      "runsCompleted": 0
+    },
+    {
+      "email": "aarav@example.com",
+      "vehicle": "Bike",
+      "idProof": "AADHAAR-1045",
+      "appliedAt": "2026-08-14T06:47:41.354Z",
+      "verifiedAt": "2026-08-14T06:47:41.356Z",
+      "id": "VOL-1",
+      "name": "Aarav Khan",
+      "verified": true,
+      "zone": "North Zone",
+      "phone": "+91 98888 10001",
+      "rating": 4.9,
+      "runsCompleted": 38
+    },
+    {
+      "email": "meera@example.com",
+      "vehicle": "Scooter",
+      "idProof": "AADHAAR-2254",
+      "appliedAt": "2026-08-14T06:47:41.356Z",
+      "verifiedAt": "2026-08-14T06:47:41.356Z",
+      "id": "VOL-2",
+      "name": "Meera Rao",
+      "verified": true,
+      "zone": "Central Zone",
+      "phone": "+91 98888 10002",
+      "rating": 4.8,
+      "runsCompleted": 24
+    },
+    {
+      "email": "pending@example.com",
+      "vehicle": "Car",
+      "idProof": "AADHAAR-7781",
+      "appliedAt": "2026-08-14T06:47:41.356Z",
+      "verifiedAt": null,
+      "id": "VOL-3",
+      "name": "Pending Volunteer",
+      "verified": false,
+      "zone": "South Zone",
+      "phone": "+91 98888 10003",
+      "rating": 0,
+      "runsCompleted": 0
+    }
+  ],
+  "donations": [
+    {
+      "id": "DON-MSVE7UD7-R2JV",
+      "ngoId": "NGO-1",
+      "donorName": "jbnjnjm",
+      "donorContact": "+91 97777 30500",
+      "donorAddress": "Station Road, Gate 2",
+      "foodName": "Paneer rice meal boxes",
+      "foodType": "Cooked meals",
+      "mealCount": 140,
+      "pickupWindow": "Today, 8:00 PM - 8:45 PM",
+      "expiryWindow": "Tonight before 11:00 PM",
+      "notes": "Food is packed and ready near the service entrance.",
+      "status": "ASSIGNED",
+      "createdAt": "2026-08-16T05:57:27.547Z"
+    },
+    {
+      "id": "DON-MSSLS7FC-DPVV",
+      "ngoId": "NGO-1",
+      "donorName": "Test Hotel",
+      "donorContact": "+91 99999 11111",
+      "donorAddress": "Test Road",
+      "foodName": "Rice & Curry Boxes",
+      "foodType": "Cooked meals",
+      "mealCount": 50,
+      "pickupWindow": "Now - 6 PM",
+      "expiryWindow": "Before 9 PM",
+      "notes": "Freshly packed",
+      "status": "REQUESTED",
+      "createdAt": "2026-08-14T07:05:56.376Z"
+    },
+    {
+      "id": "DON-MSSLRTV4-0ZZ9",
+      "ngoId": "NGO-1",
+      "donorName": "Test Hotel",
+      "donorContact": "+91 99999 11111",
+      "donorAddress": "Test Road",
+      "foodName": "Rice & Curry Boxes",
+      "foodType": "Cooked meals",
+      "mealCount": 50,
+      "pickupWindow": "Now - 6 PM",
+      "expiryWindow": "Before 9 PM",
+      "notes": "Freshly packed",
+      "status": "REQUESTED",
+      "createdAt": "2026-08-14T07:05:38.800Z"
+    },
+    {
+      "id": "DON-MSSLL9IH-5L59",
+      "ngoId": "NGO-1",
+      "donorName": "Royal Banquet Hall",
+      "donorContact": "+91 97777 30500",
+      "donorAddress": "Station Road, Gate 2",
+      "foodName": "Biryani",
+      "foodType": "Cooked meals",
+      "mealCount": 140,
+      "pickupWindow": "Today, 8:00 PM - 8:45 PM",
+      "expiryWindow": "Tonight before 11:00 PM",
+      "notes": "Food is packed and ready near the service entrance.",
+      "status": "DISTRIBUTED",
+      "createdAt": "2026-08-14T07:00:32.489Z"
+    },
+    {
+      "id": "DON-MSSLJ1G7-S4S6",
+      "ngoId": "NGO-1",
+      "donorName": "Test Hotel",
+      "donorContact": "+91 99999 11111",
+      "donorAddress": "Test Road",
+      "foodName": "Rice & Curry Boxes",
+      "foodType": "Cooked meals",
+      "mealCount": 50,
+      "pickupWindow": "Now - 6 PM",
+      "expiryWindow": "Before 9 PM",
+      "notes": "Freshly packed",
+      "status": "REQUESTED",
+      "createdAt": "2026-08-14T06:58:48.727Z"
+    },
+    {
+      "id": "DON-1001",
+      "ngoId": "NGO-1",
+      "donorName": "Cafe Aura",
+      "donorContact": "+91 97777 20001",
+      "donorAddress": "Block 4, North Campus",
+      "foodName": "Vegetable biryani boxes",
+      "foodType": "Cooked meals",
+      "mealCount": 85,
+      "pickupWindow": "Today, 7:30 PM - 8:00 PM",
+      "expiryWindow": "Tonight before 10:30 PM",
+      "notes": "Packed in sealed containers.",
+      "status": "OPEN",
+      "createdAt": "2026-08-14T06:47:41.356Z"
+    },
+    {
+      "id": "DON-1002",
+      "ngoId": "NGO-2",
+      "donorName": "Green Basket Mart",
+      "donorContact": "+91 97777 20002",
+      "donorAddress": "Market Circle",
+      "foodName": "Fruit and juice packs",
+      "foodType": "Packed food",
+      "mealCount": 120,
+      "pickupWindow": "Tomorrow, 9:00 AM - 10:00 AM",
+      "expiryWindow": "Tomorrow before 6:00 PM",
+      "notes": "Needs a vehicle with crates.",
+      "status": "OPEN",
+      "createdAt": "2026-08-14T06:47:41.356Z"
+    }
+  ],
+  "pickupRequests": [
+    {
+      "id": "REQ-MSVEDLDO-Y9JR",
+      "donationId": "DON-MSSLJ1G7-S4S6",
+      "volunteerId": "VOL-1",
+      "ngoId": "NGO-1",
+      "status": "PENDING_NGO",
+      "createdAt": "2026-08-16T06:01:55.836Z"
+    },
+    {
+      "id": "REQ-MSVEDAH7-T7PS",
+      "donationId": "DON-MSSLRTV4-0ZZ9",
+      "volunteerId": "VOL-1",
+      "ngoId": "NGO-1",
+      "status": "PENDING_NGO",
+      "createdAt": "2026-08-16T06:01:41.707Z"
+    },
+    {
+      "id": "REQ-MSVECTHV-NO3Y",
+      "donationId": "DON-MSSLS7FC-DPVV",
+      "volunteerId": "VOL-1",
+      "ngoId": "NGO-1",
+      "status": "PENDING_NGO",
+      "createdAt": "2026-08-16T06:01:19.699Z"
+    },
+    {
+      "id": "REQ-MSVEB6DR-B6W1",
+      "donationId": "DON-MSVE7UD7-R2JV",
+      "volunteerId": "VOL-1",
+      "ngoId": "NGO-1",
+      "status": "APPROVED",
+      "createdAt": "2026-08-16T06:00:03.087Z",
+      "approvedAt": "2026-08-16T06:00:46.539Z"
+    },
+    {
+      "id": "REQ-MSSLMNDV-L7T6",
+      "donationId": "DON-MSSLL9IH-5L59",
+      "volunteerId": "VOL-1",
+      "ngoId": "NGO-1",
+      "status": "APPROVED",
+      "createdAt": "2026-08-14T07:01:37.123Z",
+      "approvedAt": "2026-08-14T07:01:59.885Z"
+    }
+  ],
+  "assignments": [
+    {
+      "id": "ASN-MSVEC3WR-IA0S",
+      "requestId": "REQ-MSVEB6DR-B6W1",
+      "donationId": "DON-MSVE7UD7-R2JV",
+      "volunteerId": "VOL-1",
+      "ngoId": "NGO-1",
+      "status": "APPROVED_FOR_PICKUP",
+      "outcome": null,
+      "peopleServed": 0,
+      "notes": "",
+      "createdAt": "2026-08-16T06:00:46.539Z"
+    },
+    {
+      "id": "ASN-MSSLN4Y5-7XR9",
+      "requestId": "REQ-MSSLMNDV-L7T6",
+      "donationId": "DON-MSSLL9IH-5L59",
+      "volunteerId": "VOL-1",
+      "ngoId": "NGO-1",
+      "status": "COMPLETED",
+      "outcome": "DISTRIBUTED",
+      "peopleServed": 80,
+      "notes": "",
+      "createdAt": "2026-08-14T07:01:59.885Z",
+      "pickedUpAt": "2026-08-14T07:02:29.283Z",
+      "completedAt": "2026-08-14T07:02:34.090Z"
+    }
+  ],
+  "inventory": [
+    {
+      "id": "INV-1001",
+      "ngoId": "NGO-3",
+      "sourceDonationId": null,
+      "foodName": "Dry ration kits",
+      "foodType": "Shelf stable",
+      "mealCount": 65,
+      "expiryWindow": "Best before next week",
+      "status": "AVAILABLE",
+      "createdAt": "2026-08-14T06:47:41.356Z"
+    }
+  ],
+  "inventoryRequests": [],
+  "inventoryAssignments": [],
+  "events": [
+    {
+      "id": "EVT-MSVEDLDO-RCO9",
+      "type": "PICKUP_REQUESTED",
+      "text": "Aarav Khan requested pickup for Rice & Curry Boxes.",
+      "createdAt": "2026-08-16T06:01:55.836Z"
+    },
+    {
+      "id": "EVT-MSVEDAH7-04RO",
+      "type": "PICKUP_REQUESTED",
+      "text": "Aarav Khan requested pickup for Rice & Curry Boxes.",
+      "createdAt": "2026-08-16T06:01:41.707Z"
+    },
+    {
+      "id": "EVT-MSVECTHV-TIXM",
+      "type": "PICKUP_REQUESTED",
+      "text": "Aarav Khan requested pickup for Rice & Curry Boxes.",
+      "createdAt": "2026-08-16T06:01:19.699Z"
+    },
+    {
+      "id": "EVT-MSVEC3WR-R5AO",
+      "type": "REQUEST_APPROVED",
+      "text": "Hope Meals Foundation approved Aarav Khan for Paneer rice meal boxes.",
+      "createdAt": "2026-08-16T06:00:46.539Z"
+    },
+    {
+      "id": "EVT-MSVEB6DR-6OQU",
+      "type": "PICKUP_REQUESTED",
+      "text": "Aarav Khan requested pickup for Paneer rice meal boxes.",
+      "createdAt": "2026-08-16T06:00:03.087Z"
+    },
+    {
+      "id": "EVT-MSVE7UD7-8P1S",
+      "type": "DONATION_CREATED",
+      "text": "jbnjnjm listed 140 meals for Hope Meals Foundation.",
+      "createdAt": "2026-08-16T05:57:27.547Z"
+    },
+    {
+      "id": "EVT-MSSLS7FD-P12D",
+      "type": "DONATION_CREATED",
+      "text": "Test Hotel listed 50 meals for Hope Meals Foundation.",
+      "createdAt": "2026-08-14T07:05:56.377Z"
+    },
+    {
+      "id": "EVT-MSSLS7EY-3P1R",
+      "type": "VOLUNTEER_APPLIED",
+      "text": "Test Volunteer submitted verification for North Zone.",
+      "createdAt": "2026-08-14T07:05:56.362Z"
+    },
+    {
+      "id": "EVT-MSSLRTV4-IJIQ",
+      "type": "DONATION_CREATED",
+      "text": "Test Hotel listed 50 meals for Hope Meals Foundation.",
+      "createdAt": "2026-08-14T07:05:38.800Z"
+    },
+    {
+      "id": "EVT-MSSLRTUT-OFOZ",
+      "type": "VOLUNTEER_APPLIED",
+      "text": "Test Volunteer submitted verification for North Zone.",
+      "createdAt": "2026-08-14T07:05:38.789Z"
+    },
+    {
+      "id": "EVT-MSSLO4GR-561P",
+      "type": "VOLUNTEER_VERIFIED",
+      "text": "Test Volunteer was verified for pickup requests.",
+      "createdAt": "2026-08-14T07:02:45.915Z"
+    },
+    {
+      "id": "EVT-MSSLNVCA-ONTD",
+      "type": "FOOD_DISTRIBUTED",
+      "text": "Biryani was distributed to people in need.",
+      "createdAt": "2026-08-14T07:02:34.090Z"
+    },
+    {
+      "id": "EVT-MSSLNRMR-PP8P",
+      "type": "FOOD_PICKED_UP",
+      "text": "Food pickup started for Biryani.",
+      "createdAt": "2026-08-14T07:02:29.283Z"
+    },
+    {
+      "id": "EVT-MSSLN4Y5-CCRC",
+      "type": "REQUEST_APPROVED",
+      "text": "Hope Meals Foundation approved Aarav Khan for Biryani.",
+      "createdAt": "2026-08-14T07:01:59.885Z"
+    },
+    {
+      "id": "EVT-MSSLMNDV-143V",
+      "type": "PICKUP_REQUESTED",
+      "text": "Aarav Khan requested pickup for Biryani.",
+      "createdAt": "2026-08-14T07:01:37.123Z"
+    },
+    {
+      "id": "EVT-MSSLL9IH-35NL",
+      "type": "DONATION_CREATED",
+      "text": "Royal Banquet Hall listed 140 meals for Hope Meals Foundation.",
+      "createdAt": "2026-08-14T07:00:32.489Z"
+    },
+    {
+      "id": "EVT-MSSLJ1G7-M07K",
+      "type": "DONATION_CREATED",
+      "text": "Test Hotel listed 50 meals for Hope Meals Foundation.",
+      "createdAt": "2026-08-14T06:58:48.727Z"
+    },
+    {
+      "id": "EVT-MSSLJ1FY-3ZW0",
+      "type": "VOLUNTEER_APPLIED",
+      "text": "Test Volunteer submitted verification for North Zone.",
+      "createdAt": "2026-08-14T06:58:48.718Z"
+    },
+    {
+      "id": "EVT-1",
+      "type": "SYSTEM_READY",
+      "text": "Platform seeded with live demo data.",
+      "createdAt": "2026-08-14T06:47:41.356Z"
+    }
+  ]
+}
